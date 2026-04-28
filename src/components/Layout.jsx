@@ -5,9 +5,9 @@ import { supabase } from '../lib/supabase'
 
 const NAV_ITEMS = [
   { path: '/', label: 'Pradžia', emoji: '🏠' },
+  { path: '/pardavimai', label: 'Pardavimai', emoji: '📊' },
   { path: '/sandelis', label: 'Sandėlis', emoji: '📦' },
   { path: '/islaidos', label: 'Išlaidos', emoji: '💸' },
-  { path: '/pajamos', label: 'Pajamos', emoji: '💰' },
   { path: '/meniu', label: 'Meniu', emoji: '🍽️' },
   { path: '/tekejai', label: 'Tiekėjai', emoji: '🚚' },
 ]
