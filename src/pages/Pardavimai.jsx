@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-const IGNORE_CATEGORIES = ['Priedai']
+const IGNORE_CATEGORIES = [] // nieko nefiltrujame – norime matyti visas pajamas
 
 function parseCSV(text) {
   const lines = text.split('\n').filter(l => l.trim())
@@ -24,6 +24,14 @@ function parseCSV(text) {
     }
   }
   return rows
+}
+
+function fmtEur(n) {
+  if (n >= 1000) return `€${(n / 1000).toFixed(1)}k`
+  return `€${n.toFixed(0)}`
+}
+function fmtEurFull(n) {
+  return '€' + n.toLocaleString('lt-LT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
 export default function Pardavimai() {
@@ -55,7 +63,6 @@ export default function Pardavimai() {
         .from('sales')
         .select('*')
         .gte('sale_date', fromDate)
-        .not('category', 'in', '("Priedai")')
         .order('sale_datetime', { ascending: false })
         .range(from, from + batchSize - 1)
       if (error || !data || data.length === 0) break
@@ -89,8 +96,8 @@ export default function Pardavimai() {
         dish_type: r['Patiekalo tipas'] || null,
         waiter: r['Padavėjas'] || null,
         quantity: parseInt(r['Kiekis']) || 1,
-        amount: parseFloat(r['Suma (€)'].replace(',', '.')) || 0,
-        discount: parseFloat(r['Nuolaida (€)'].replace(',', '.')) || 0,
+        amount: parseFloat((r['Suma (€)'] || '0').replace(/\s/g, '').replace(',', '.')) || 0,
+        discount: parseFloat((r['Nuolaida (€)'] || '0').replace(/\s/g, '').replace(',', '.')) || 0,
         order_nr: r['Užsakymo nr.'] || null,
         import_id: importId,
       }))
@@ -213,16 +220,16 @@ export default function Pardavimai() {
           {/* Suvestinė */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-green-500 text-white rounded-2xl p-4 text-center">
-              <p className="text-green-100 text-xs">Pajamos</p>
-              <p className="text-2xl font-black">€{totalRevenue.toFixed(0)}</p>
+              <p className="text-green-100 text-xs mb-1">Pajamos</p>
+              <p className="text-xl font-black leading-tight">{fmtEurFull(totalRevenue)}</p>
             </div>
             <div className="bg-green-100 border border-green-200 rounded-2xl p-4 text-center">
-              <p className="text-green-700 text-xs">Parduota</p>
-              <p className="text-2xl font-black text-green-600">{totalItems}</p>
+              <p className="text-green-700 text-xs mb-1">Parduota</p>
+              <p className="text-xl font-black text-green-600 leading-tight">{totalItems.toLocaleString('lt-LT')}</p>
             </div>
             <div className="bg-green-100 border border-green-200 rounded-2xl p-4 text-center">
-              <p className="text-green-700 text-xs">Vid./patiekalas</p>
-              <p className="text-2xl font-black text-green-600">
+              <p className="text-green-700 text-xs mb-1">Vid./patiekalas</p>
+              <p className="text-xl font-black text-green-600 leading-tight">
                 €{totalItems > 0 ? (totalRevenue / totalItems).toFixed(2) : '0'}
               </p>
             </div>
@@ -239,7 +246,7 @@ export default function Pardavimai() {
                     <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
                       <div className="h-full bg-green-400 rounded-full flex items-center justify-end pr-2 transition-all"
                         style={{ width: `${(amount / maxDay) * 100}%` }}>
-                        <span className="text-xs text-white font-bold">€{amount.toFixed(0)}</span>
+                        <span className="text-xs text-white font-bold">{fmtEur(amount)}</span>
                       </div>
                     </div>
                   </div>
@@ -260,7 +267,7 @@ export default function Pardavimai() {
                     <div className="text-xs text-gray-400">{d.category}</div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-black text-gray-800">€{d.amount.toFixed(0)}</div>
+                    <div className="text-sm font-black text-gray-800">{fmtEur(d.amount)}</div>
                     <div className="text-xs text-gray-400">{d.qty}x</div>
                   </div>
                   <div className="w-16 bg-gray-100 rounded-full h-2 overflow-hidden">
@@ -283,7 +290,7 @@ export default function Pardavimai() {
                     <div className="h-full bg-blue-400 rounded-full"
                       style={{ width: `${(amount / topCategories[0].amount) * 100}%` }} />
                   </div>
-                  <span className="text-sm font-bold text-gray-700 w-16 text-right">€{amount.toFixed(0)}</span>
+                  <span className="text-sm font-bold text-gray-700 w-16 text-right">{fmtEur(amount)}</span>
                   <span className="text-xs text-gray-400 w-8 text-right">
                     {totalRevenue > 0 ? `${((amount / totalRevenue) * 100).toFixed(0)}%` : ''}
                   </span>
@@ -303,7 +310,7 @@ export default function Pardavimai() {
                       👤
                     </div>
                     <div className="flex-1 font-semibold text-gray-800">{name}</div>
-                    <div className="text-lg font-black text-purple-600">€{amount.toFixed(0)}</div>
+                    <div className="text-lg font-black text-purple-600">{fmtEur(amount)}</div>
                   </div>
                 ))}
               </div>
