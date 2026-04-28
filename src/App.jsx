@@ -10,6 +10,7 @@ import Pajamos from './pages/Pajamos'
 import Meniu from './pages/Meniu'
 import Tekejai from './pages/Tekejai'
 import Pardavimai from './pages/Pardavimai'
+import RecepturaiImport from './pages/RecepturaiImport'
 
 function AppRoutes() {
   const { user, loading } = useApp()
@@ -36,6 +37,7 @@ function AppRoutes() {
         <Route path="/pajamos" element={<Pajamos />} />
         <Route path="/pardavimai" element={<Pardavimai />} />
         <Route path="/meniu" element={<Meniu />} />
+        <Route path="/recepturai-import" element={<RecepturaiImport />} />
         <Route path="/tekejai" element={<Tekejai />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
