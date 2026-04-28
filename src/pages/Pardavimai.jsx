@@ -85,7 +85,7 @@ export default function Pardavimai() {
     const rows = parseCSV(text)
     const importId = `import_${Date.now()}`
 
-    const toInsert = rows
+    const parsed = rows
       .filter(r => !IGNORE_CATEGORIES.includes(r['Patiekalų grupė']))
       .filter(r => r['Patiekalas'] && r['Suma (€)'])
       .map(r => ({
@@ -103,13 +103,27 @@ export default function Pardavimai() {
         import_id: importId,
       }))
 
-    // Batch insert 500 at a time, skip duplicates
+    // Susumuoti eilutes su tuo pačiu raktu (ta pati porcija užsakyme)
+    const merged = {}
+    for (const r of parsed) {
+      const key = `${r.order_nr}||${r.dish_name}||${r.sale_datetime}`
+      if (merged[key]) {
+        merged[key].quantity += r.quantity
+        merged[key].amount += r.amount
+        merged[key].discount += r.discount
+      } else {
+        merged[key] = { ...r }
+      }
+    }
+    const toInsert = Object.values(merged)
+
+    // Upsert: jei jau yra toks įrašas — atnaujinti suma
     let inserted = 0
     for (let i = 0; i < toInsert.length; i += 500) {
       const batch = toInsert.slice(i, i + 500)
       const { data: res, error } = await supabase
         .from('sales')
-        .upsert(batch, { onConflict: 'order_nr,dish_name,sale_datetime', ignoreDuplicates: true })
+        .upsert(batch, { onConflict: 'order_nr,dish_name,sale_datetime', ignoreDuplicates: false })
       if (!error) inserted += batch.length
     }
 
