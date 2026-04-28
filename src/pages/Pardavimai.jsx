@@ -46,13 +46,24 @@ export default function Pardavimai() {
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase
-      .from('sales')
-      .select('*')
-      .gte('sale_date', getFromDate(period))
-      .not('category', 'in', '("Priedai")')
-      .order('sale_datetime', { ascending: false })
-    setData(data || [])
+    const fromDate = getFromDate(period)
+    let all = []
+    let from = 0
+    const batchSize = 1000
+    while (true) {
+      const { data, error } = await supabase
+        .from('sales')
+        .select('*')
+        .gte('sale_date', fromDate)
+        .not('category', 'in', '("Priedai")')
+        .order('sale_datetime', { ascending: false })
+        .range(from, from + batchSize - 1)
+      if (error || !data || data.length === 0) break
+      all = all.concat(data)
+      if (data.length < batchSize) break
+      from += batchSize
+    }
+    setData(all)
     setLoading(false)
   }
 
