@@ -84,11 +84,13 @@ export default function Pardavimai() {
         import_id: importId,
       }))
 
-    // Batch insert 500 at a time
+    // Batch insert 500 at a time, skip duplicates
     let inserted = 0
     for (let i = 0; i < toInsert.length; i += 500) {
       const batch = toInsert.slice(i, i + 500)
-      const { error } = await supabase.from('sales').insert(batch)
+      const { data: res, error } = await supabase
+        .from('sales')
+        .upsert(batch, { onConflict: 'order_nr,dish_name,sale_datetime', ignoreDuplicates: true })
       if (!error) inserted += batch.length
     }
 
