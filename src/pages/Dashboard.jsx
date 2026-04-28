@@ -29,29 +29,24 @@ export default function Dashboard() {
     const today = now.toISOString().split('T')[0]
 
     const [salesRes, expRes, fixedRes, invRes, salesYearRes] = await Promise.all([
-      // Šio mėnesio pardavimai (Kitchen Force)
       supabase.from('sales').select('amount, dish_name, category').gte('sale_date', monthStart),
-      // Šio mėnesio kintamos išlaidos
-      supabase.from('expenses').select('amount').gte('date', monthStart),
-      // Fiksuotos išlaidos (mėnesio suma)
-      supabase.from('fixed_expenses').select('amount, frequency'),
-      // Sandėlis
+      supabase.from('expenses').select('amount, description, category').gte('date', monthStart),
+      supabase.from('fixed_expenses').select('amount, frequency, name, category'),
       supabase.from('inventory').select('quantity, min_quantity, name, unit_cost'),
-      // Metų pardavimai (6 mėnesių grafas)
       supabase.from('sales').select('sale_date, amount').gte('sale_date', yearStart),
     ])
 
-    // Mėnesio pajamos
     const monthlySales = (salesRes.data || []).reduce((s, r) => s + Number(r.amount), 0)
-
-    // Mėnesio kintamos išlaidos
     const varExpenses = (expRes.data || []).reduce((s, r) => s + Number(r.amount), 0)
 
-    // Fiksuotos išlaidos → mėnesio ekvivalentas ('yearly' arba 'monthly')
-    const fixedMonthly = (fixedRes.data || []).reduce((s, r) => {
-      const amt = Number(r.amount)
-      return s + (r.frequency === 'yearly' ? amt / 12 : amt)
-    }, 0)
+    const fixedItems = (fixedRes.data || []).map(r => ({
+      name: r.name,
+      category: r.category,
+      monthly: r.frequency === 'yearly' ? Number(r.amount) / 12 : Number(r.amount),
+      frequency: r.frequency,
+      amount: Number(r.amount),
+    }))
+    const fixedMonthly = fixedItems.reduce((s, r) => s + r.monthly, 0)
 
     const totalExpenses = varExpenses + fixedMonthly
     const profit = monthlySales - totalExpenses
@@ -84,13 +79,13 @@ export default function Dashboard() {
     }
     const maxMonth = Math.max(...months.map(m => m.amount), 1)
 
-    setData({ monthlySales, varExpenses, fixedMonthly, totalExpenses, profit, margin, lowStock, missingPrice, topDish, months })
+    setData({ monthlySales, varExpenses, fixedMonthly, fixedItems, totalExpenses, profit, margin, lowStock, missingPrice, topDish, months })
     setLoading(false)
   }
 
   if (loading) return <div className="text-center py-16 text-gray-400">⏳ Kraunama...</div>
 
-  const { monthlySales, varExpenses, fixedMonthly, totalExpenses, profit, margin, lowStock, missingPrice, topDish, months } = data
+  const { monthlySales, varExpenses, fixedMonthly, fixedItems, totalExpenses, profit, margin, lowStock, missingPrice, topDish, months } = data
   const monthName = new Date().toLocaleDateString('lt-LT', { month: 'long' })
 
   return (
@@ -119,6 +114,52 @@ export default function Dashboard() {
             <p className="text-white/70 text-xs">💸 Išlaidos</p>
             <p className="text-xl font-black">{fmtEur(totalExpenses)}</p>
             <p className="text-white/60 text-xs">{fmtEur(varExpenses)} kint. + {fmtEur(fixedMonthly)} fiksuotų</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Detalus P&L skaidymas */}
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="p-4 border-b border-gray-100">
+          <h3 className="font-bold text-gray-700">🧾 Detalus P&L skaidymas — {monthName}</h3>
+        </div>
+        <div className="divide-y divide-gray-50">
+          {/* Pardavimai */}
+          <div className="flex items-center justify-between px-4 py-3 bg-green-50">
+            <span className="font-semibold text-green-800">📈 Pardavimai (Kitchen Force)</span>
+            <span className="font-black text-green-700 text-lg">€{monthlySales.toFixed(2)}</span>
+          </div>
+
+          {/* Fiksuotos išlaidos */}
+          {fixedItems.length > 0 && <>
+            <div className="flex items-center justify-between px-4 py-2 bg-gray-50">
+              <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Fiksuotos išlaidos</span>
+              <span className="text-sm font-bold text-red-500">−€{fixedMonthly.toFixed(2)}</span>
+            </div>
+            {fixedItems.map((item, i) => (
+              <div key={i} className="flex items-center justify-between px-4 py-2 pl-8">
+                <span className="text-sm text-gray-600">{item.name}
+                  {item.frequency === 'yearly' && <span className="text-xs text-gray-400 ml-1">(metinė ÷ 12)</span>}
+                </span>
+                <span className="text-sm font-semibold text-red-400">−€{item.monthly.toFixed(2)}</span>
+              </div>
+            ))}
+          </>}
+
+          {/* Kintamos išlaidos */}
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-50">
+            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Kintamos išlaidos ({monthName})</span>
+            <span className="text-sm font-bold text-red-500">−€{varExpenses.toFixed(2)}</span>
+          </div>
+
+          {/* Pelnas */}
+          <div className={`flex items-center justify-between px-4 py-3 ${profit >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+            <span className={`font-black text-lg ${profit >= 0 ? 'text-green-800' : 'text-red-700'}`}>
+              {profit >= 0 ? '✅ Pelnas' : '❌ Nuostolis'}
+            </span>
+            <span className={`font-black text-xl ${profit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+              {profit >= 0 ? '+' : ''}€{profit.toFixed(2)}
+            </span>
           </div>
         </div>
       </div>
