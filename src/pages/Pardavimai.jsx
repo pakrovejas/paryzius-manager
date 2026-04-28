@@ -86,10 +86,9 @@ export default function Pardavimai() {
     const importId = `import_${Date.now()}`
 
     const parsed = rows
-      .filter(r => !IGNORE_CATEGORIES.includes(r['Patiekalų grupė']))
       .filter(r => r['Patiekalas'] && r['Suma (€)'])
       .map(r => ({
-        sale_datetime: r['Data'] ? new Date(r['Data'].replace(' ', 'T')).toISOString() : null,
+        sale_datetime: r['Data'] ? r['Data'].replace(' ', 'T') : null,
         sale_date: r['Data'] ? r['Data'].split(' ')[0] : null,
         dish_name: r['Patiekalas'],
         barcode: r['Barkodas'] || null,
@@ -117,17 +116,29 @@ export default function Pardavimai() {
     }
     const toInsert = Object.values(merged)
 
-    // Upsert: jei jau yra toks įrašas — atnaujinti suma
-    let inserted = 0
-    for (let i = 0; i < toInsert.length; i += 500) {
-      const batch = toInsert.slice(i, i + 500)
-      const { data: res, error } = await supabase
-        .from('sales')
-        .upsert(batch, { onConflict: 'order_nr,dish_name,sale_datetime', ignoreDuplicates: false })
-      if (!error) inserted += batch.length
+    // Rasti datų intervalą iš CSV
+    const dates = toInsert.map(r => r.sale_date).filter(Boolean).sort()
+    const minDate = dates[0]
+    const maxDate = dates[dates.length - 1]
+
+    // Ištrinti senus įrašus šiam datų intervalui (garantuoja teisingus duomenis)
+    if (minDate && maxDate) {
+      await supabase.from('sales').delete()
+        .gte('sale_date', minDate)
+        .lte('sale_date', maxDate)
     }
 
-    setImportResult({ inserted, total: toInsert.length })
+    // Įterpti naujus įrašus
+    let inserted = 0
+    let errors = 0
+    for (let i = 0; i < toInsert.length; i += 500) {
+      const batch = toInsert.slice(i, i + 500)
+      const { error } = await supabase.from('sales').insert(batch)
+      if (!error) inserted += batch.length
+      else { errors += batch.length; console.error('Insert error:', error) }
+    }
+
+    setImportResult({ inserted, total: toInsert.length, errors, minDate, maxDate })
     setImporting(false)
     fileRef.current.value = ''
     load()
@@ -198,11 +209,15 @@ export default function Pardavimai() {
 
       {/* Import result */}
       {importResult && (
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-3 flex items-center gap-2">
-          <span className="text-2xl">✅</span>
+        <div className={`border rounded-2xl p-3 flex items-center gap-2 ${importResult.errors > 0 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
+          <span className="text-2xl">{importResult.errors > 0 ? '⚠️' : '✅'}</span>
           <div>
-            <p className="font-bold text-green-700">Importas sėkmingas!</p>
-            <p className="text-sm text-green-600">Įkelta {importResult.inserted} įrašų iš {importResult.total}</p>
+            <p className={`font-bold ${importResult.errors > 0 ? 'text-orange-700' : 'text-green-700'}`}>Importas sėkmingas!</p>
+            <p className={`text-sm ${importResult.errors > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+              Įkelta {importResult.inserted}/{importResult.total} įrašų
+              {importResult.minDate && ` · ${importResult.minDate} → ${importResult.maxDate}`}
+              {importResult.errors > 0 && ` · ${importResult.errors} klaidų`}
+            </p>
           </div>
           <button onClick={() => setImportResult(null)} className="ml-auto text-gray-400 hover:text-gray-600">✕</button>
         </div>
