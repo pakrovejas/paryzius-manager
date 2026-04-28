@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useApp } from '../context/AppContext'
 import { XP_REWARDS } from '../lib/gamification'
@@ -19,10 +20,11 @@ function getStatus(qty, minQty) {
 
 export default function Sandelis() {
   const { addXP } = useApp()
+  const [searchParams] = useSearchParams()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [filter, setFilter] = useState('visi')
+  const [filter, setFilter] = useState(searchParams.get('filter') === 'noprice' ? 'noprice' : 'visi')
   const [editingCost, setEditingCost] = useState(null)
   const [costValue, setCostValue] = useState('')
   const [form, setForm] = useState({ name: '', quantity: '', unit: 'kg', min_quantity: '', category: 'Kita', unit_cost: '' })
@@ -84,6 +86,7 @@ export default function Sandelis() {
 
   const filtered = filter === 'visi' ? items
     : filter === 'mazai' ? items.filter(i => getStatus(i.quantity, i.min_quantity) !== 'ok')
+    : filter === 'noprice' ? items.filter(i => !Number(i.unit_cost) && i.category !== 'Receptūra')
     : items.filter(i => i.category === filter)
 
   const totalValue = items.reduce((s, i) => s + Number(i.quantity) * Number(i.unit_cost || 0), 0)
@@ -177,15 +180,26 @@ export default function Sandelis() {
 
       {/* Filter */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {['visi', 'mazai', ...CATEGORIES].map(f => (
+        {[
+          ['visi', 'Visi'],
+          ['mazai', '⚠️ Baigiasi'],
+          ['noprice', '💰 Be kainos'],
+          ...CATEGORIES.map(c => [c, c])
+        ].map(([f, label]) => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition ${
               filter === f ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
-            {f === 'mazai' ? '⚠️ Baigiasi' : f === 'visi' ? 'Visi' : f}
+            {label}
           </button>
         ))}
       </div>
+
+      {filter === 'noprice' && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-sm text-orange-700">
+          💡 Įvesk kainas → receptūrose automatiškai skaičiuosis food cost %
+        </div>
+      )}
 
       {/* Items */}
       {loading ? (
