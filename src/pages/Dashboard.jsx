@@ -47,10 +47,10 @@ export default function Dashboard() {
     // Mėnesio kintamos išlaidos
     const varExpenses = (expRes.data || []).reduce((s, r) => s + Number(r.amount), 0)
 
-    // Fiksuotos išlaidos → mėnesio ekvivalentas
+    // Fiksuotos išlaidos → mėnesio ekvivalentas ('yearly' arba 'monthly')
     const fixedMonthly = (fixedRes.data || []).reduce((s, r) => {
       const amt = Number(r.amount)
-      return s + (r.frequency === 'metai' ? amt / 12 : amt)
+      return s + (r.frequency === 'yearly' ? amt / 12 : amt)
     }, 0)
 
     const totalExpenses = varExpenses + fixedMonthly
