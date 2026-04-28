@@ -48,8 +48,9 @@ export default function Pardavimai() {
     const d = new Date()
     if (p === 'diena') return d.toISOString().split('T')[0]
     if (p === 'savaite') { d.setDate(d.getDate() - 7); return d.toISOString().split('T')[0] }
-    if (p === 'menuo') { d.setMonth(d.getMonth() - 1); return d.toISOString().split('T')[0] }
-    d.setFullYear(d.getFullYear() - 1); return d.toISOString().split('T')[0]
+    if (p === 'menuo') { d.setDate(1); return d.toISOString().split('T')[0] }
+    // Metai = nuo šių metų sausio 1
+    return `${d.getFullYear()}-01-01`
   }
 
   async function load() {
