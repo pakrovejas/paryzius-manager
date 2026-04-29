@@ -42,10 +42,22 @@ export default function Pardavimai() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [datesInDB, setDatesInDB] = useState(new Set())
+  const [closedDays, setClosedDays] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('closed_days') || '[]')) } catch { return new Set() }
+  })
   const fileRef = useRef()
 
   useEffect(() => { load() }, [period])
   useEffect(() => { loadDates() }, [])
+
+  function toggleClosedDay(date) {
+    setClosedDays(prev => {
+      const next = new Set(prev)
+      next.has(date) ? next.delete(date) : next.add(date)
+      localStorage.setItem('closed_days', JSON.stringify([...next]))
+      return next
+    })
+  }
 
   function getFromDate(p) {
     const d = new Date()
@@ -213,13 +225,13 @@ export default function Pardavimai() {
     .map(([name, amount]) => ({ name, amount }))
     .sort((a, b) => b.amount - a.amount)
 
-  // Trūkstamos dienos (paskutinės 30 dienų)
+  // Trūkstamos dienos (paskutinės 30 dienų, išskyrus uždarytas)
   const missingDays = []
   for (let i = 29; i >= 1; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
     const ds = d.toISOString().split('T')[0]
-    if (!datesInDB.has(ds)) missingDays.push(ds)
+    if (!datesInDB.has(ds) && !closedDays.has(ds)) missingDays.push(ds)
   }
 
   return (
@@ -269,10 +281,14 @@ export default function Pardavimai() {
           <p className="font-bold text-orange-700 text-sm mb-2">⚠️ Neįkeltos {missingDays.length} dienos (paskutiniai 30 d.)</p>
           <div className="flex flex-wrap gap-1">
             {missingDays.map(d => (
-              <span key={d} className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-1 rounded-lg">{d.slice(5)}</span>
+              <button key={d} onClick={() => toggleClosedDay(d)}
+                className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-1 rounded-lg hover:bg-orange-300 transition"
+                title="Spausti jei diena buvo uždaryta">
+                {d.slice(5)} ✕
+              </button>
             ))}
           </div>
-          <p className="text-xs text-orange-500 mt-2">Eksportuok šias dienas iš Kitchen Force ir įkelk CSV</p>
+          <p className="text-xs text-orange-500 mt-2">Eksportuok iš Kitchen Force ir įkelk CSV · Spauski ant datos jei diena uždaryta</p>
         </div>
       )}
 
