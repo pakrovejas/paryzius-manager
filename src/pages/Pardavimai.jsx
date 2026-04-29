@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase'
 const IGNORE_CATEGORIES = [] // nieko nefiltrujame – norime matyti visas pajamas
 
 function parseCSV(text) {
-  const lines = text.split('\n').filter(l => l.trim())
+  const cleaned = text.replace(/^﻿/, '') // strip UTF-8 BOM if present
+  const lines = cleaned.split('\n').filter(l => l.trim())
   const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim())
   const rows = []
   for (let i = 1; i < lines.length; i++) {
