@@ -42,6 +42,8 @@ export default function Pardavimai() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [datesInDB, setDatesInDB] = useState(new Set())
+  const [dishSearch, setDishSearch] = useState('')
+  const [showAllDishes, setShowAllDishes] = useState(false)
   const [closedDays, setClosedDays] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('closed_days') || '[]')) } catch { return new Set() }
   })
@@ -188,10 +190,9 @@ export default function Pardavimai() {
     byDish[r.dish_name].qty += Number(r.quantity)
     byDish[r.dish_name].amount += Number(r.amount)
   }
-  const topDishes = Object.entries(byDish)
+  const allDishes = Object.entries(byDish)
     .map(([name, d]) => ({ name, ...d }))
     .sort((a, b) => b.amount - a.amount)
-    .slice(0, 15)
 
   // Pagal kategoriją
   const byCategory = {}
@@ -344,29 +345,52 @@ export default function Pardavimai() {
             </div>
           )}
 
-          {/* Top patiekalai */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-4">
-            <h3 className="font-bold text-gray-700 mb-3">🏆 Populiariausi patiekalai</h3>
-            <div className="space-y-2">
-              {topDishes.map((d, i) => (
-                <div key={d.name} className="flex items-center gap-3">
-                  <span className="text-sm font-black text-gray-400 w-5">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-gray-800 truncate">{d.name}</div>
-                    <div className="text-xs text-gray-400">{d.category}</div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-black text-gray-800">{fmtEur(d.amount)}</div>
-                    <div className="text-xs text-gray-400">{d.qty}x</div>
-                  </div>
-                  <div className="w-16 bg-gray-100 rounded-full h-2 overflow-hidden">
-                    <div className="h-full bg-green-400 rounded-full"
-                      style={{ width: `${(d.amount / topDishes[0].amount) * 100}%` }} />
-                  </div>
+          {/* Visi patiekalai */}
+          {(() => {
+            const filtered = dishSearch
+              ? allDishes.filter(d => d.name.toLowerCase().includes(dishSearch.toLowerCase()))
+              : allDishes
+            const visible = (showAllDishes || dishSearch) ? filtered : filtered.slice(0, 15)
+            const maxAmt = allDishes[0]?.amount || 1
+            return (
+              <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-gray-700">🏆 Patiekalai <span className="text-gray-400 font-normal text-sm">({allDishes.length} vnt.)</span></h3>
                 </div>
-              ))}
-            </div>
-          </div>
+                <input
+                  placeholder="🔍 Ieškoti patiekalo..."
+                  value={dishSearch}
+                  onChange={e => setDishSearch(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm mb-3 focus:outline-none focus:border-green-400"
+                />
+                <div className="space-y-2">
+                  {visible.map((d, i) => (
+                    <div key={d.name} className="flex items-center gap-3">
+                      <span className="text-sm font-black text-gray-400 w-5">{filtered.indexOf(d) + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-800 truncate">{d.name}</div>
+                        <div className="text-xs text-gray-400">{d.category}</div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-sm font-black text-gray-800">{fmtEur(d.amount)}</div>
+                        <div className="text-xs text-gray-400">{d.qty}x</div>
+                      </div>
+                      <div className="w-16 bg-gray-100 rounded-full h-2 overflow-hidden">
+                        <div className="h-full bg-green-400 rounded-full"
+                          style={{ width: `${(d.amount / maxAmt) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {!dishSearch && filtered.length > 15 && (
+                  <button onClick={() => setShowAllDishes(v => !v)}
+                    className="mt-3 w-full text-sm text-green-600 hover:text-green-800 font-medium py-2 border border-green-200 rounded-xl hover:bg-green-50 transition">
+                    {showAllDishes ? '▲ Rodyti mažiau' : `▼ Rodyti visus ${filtered.length} patiekalus`}
+                  </button>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Pagal kategoriją */}
           <div className="bg-white border border-gray-200 rounded-2xl p-4">
