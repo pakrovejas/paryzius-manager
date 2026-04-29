@@ -81,12 +81,65 @@ function Recepturos() {
 
   if (loading) return <div className="text-center py-12 text-gray-400">⏳ Kraunama...</div>
 
+  // Food cost suvestinė
+  const withCost = menuItems.map(item => ({
+    ...item,
+    cost: calcCost(item.id),
+    pct: getFoodCostPct(item.id, item.price),
+    ingredients: (recipes[item.id] || []).length,
+  })).filter(i => i.pct !== null).sort((a, b) => b.pct - a.pct)
+
+  const redCount = withCost.filter(i => i.pct > 35).length
+  const yellowCount = withCost.filter(i => i.pct > 25 && i.pct <= 35).length
+  const greenCount = withCost.filter(i => i.pct <= 25).length
+
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-bold text-gray-800">🧮 Receptūrų kalkuliatorius</h2>
         <p className="text-xs text-gray-400">Pasirinkite patiekalą → pridėkite ingredientus → matysite savikainą</p>
       </div>
+
+      {/* Food cost suvestinė */}
+      {withCost.length > 0 && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-3 text-center">
+              <p className="text-2xl font-black text-green-600">{greenCount}</p>
+              <p className="text-xs text-green-700">✅ ≤25% puiku</p>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-3 text-center">
+              <p className="text-2xl font-black text-yellow-600">{yellowCount}</p>
+              <p className="text-xs text-yellow-700">⚠️ 25–35%</p>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-3 text-center">
+              <p className="text-2xl font-black text-red-600">{redCount}</p>
+              <p className="text-xs text-red-700">🚨 &gt;35% brangu</p>
+            </div>
+          </div>
+
+          {redCount > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-3">
+              <p className="font-bold text-red-700 text-sm mb-2">🚨 Patiekalai su per dideliu food cost:</p>
+              <div className="space-y-1">
+                {withCost.filter(i => i.pct > 35).map(item => (
+                  <div key={item.id} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2">
+                    <span className="flex-1 text-sm font-medium text-gray-800 truncate">{item.name}</span>
+                    <span className="text-sm font-black text-red-600">{item.pct.toFixed(0)}%</span>
+                    <span className="text-xs text-gray-400">rec. €{getRecommendedPrice(item.cost).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {withCost.length === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-700">
+          💡 Kai suvesite produktų kainas Sandėlyje — čia automatiškai pasirodys food cost % kiekvienam patiekalui
+        </div>
+      )}
 
       {/* Patiekalų sąrašas su savikaina */}
       <div className="space-y-2">
