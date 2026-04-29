@@ -192,6 +192,16 @@ export default function Pardavimai() {
     .map(([name, amount]) => ({ name, amount }))
     .sort((a, b) => b.amount - a.amount)
 
+  // Trūkstamos dienos (paskutinės 30 dienų)
+  const datesInDB = new Set(data.map(r => r.sale_date).filter(Boolean))
+  const missingDays = []
+  for (let i = 29; i >= 1; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const ds = d.toISOString().split('T')[0]
+    if (!datesInDB.has(ds)) missingDays.push(ds)
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -224,14 +234,27 @@ export default function Pardavimai() {
       )}
 
       {/* Period filter */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto">
         {[['diena', 'Šiandien'], ['savaite', 'Savaitė'], ['menuo', 'Mėnuo'], ['metai', 'Metai'], ['visi', 'Visi']].map(([val, label]) => (
           <button key={val} onClick={() => setPeriod(val)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${period === val ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${period === val ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             {label}
           </button>
         ))}
       </div>
+
+      {/* Trūkstamos dienos */}
+      {!loading && missingDays.length > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3">
+          <p className="font-bold text-orange-700 text-sm mb-2">⚠️ Neįkeltos {missingDays.length} dienos (paskutiniai 30 d.)</p>
+          <div className="flex flex-wrap gap-1">
+            {missingDays.map(d => (
+              <span key={d} className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-1 rounded-lg">{d.slice(5)}</span>
+            ))}
+          </div>
+          <p className="text-xs text-orange-500 mt-2">Eksportuok šias dienas iš Kitchen Force ir įkelk CSV</p>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12 text-gray-400">⏳ Kraunama...</div>
