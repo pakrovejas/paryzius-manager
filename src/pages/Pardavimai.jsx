@@ -41,9 +41,11 @@ export default function Pardavimai() {
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
+  const [datesInDB, setDatesInDB] = useState(new Set())
   const fileRef = useRef()
 
   useEffect(() => { load() }, [period])
+  useEffect(() => { loadDates() }, [])
 
   function getFromDate(p) {
     const d = new Date()
@@ -52,6 +54,14 @@ export default function Pardavimai() {
     if (p === 'menuo') { d.setDate(1); return d.toISOString().split('T')[0] }
     if (p === 'metai') return `${d.getFullYear()}-01-01`
     return null // visi
+  }
+
+  async function loadDates() {
+    const d = new Date()
+    d.setDate(d.getDate() - 30)
+    const from30 = d.toISOString().split('T')[0]
+    const { data } = await supabase.from('sales').select('sale_date').gte('sale_date', from30)
+    setDatesInDB(new Set((data || []).map(r => r.sale_date).filter(Boolean)))
   }
 
   async function load() {
@@ -142,6 +152,7 @@ export default function Pardavimai() {
     setImporting(false)
     fileRef.current.value = ''
     load()
+    loadDates()
   }
 
   // Statistika
@@ -193,7 +204,6 @@ export default function Pardavimai() {
     .sort((a, b) => b.amount - a.amount)
 
   // Trūkstamos dienos (paskutinės 30 dienų)
-  const datesInDB = new Set(data.map(r => r.sale_date).filter(Boolean))
   const missingDays = []
   for (let i = 29; i >= 1; i--) {
     const d = new Date()
