@@ -50,8 +50,8 @@ export default function Pardavimai() {
     if (p === 'diena') return d.toISOString().split('T')[0]
     if (p === 'savaite') { d.setDate(d.getDate() - 7); return d.toISOString().split('T')[0] }
     if (p === 'menuo') { d.setDate(1); return d.toISOString().split('T')[0] }
-    // Metai = nuo šių metų sausio 1
-    return `${d.getFullYear()}-01-01`
+    if (p === 'metai') return `${d.getFullYear()}-01-01`
+    return null // visi
   }
 
   async function load() {
@@ -61,10 +61,9 @@ export default function Pardavimai() {
     let from = 0
     const batchSize = 1000
     while (true) {
-      const { data, error } = await supabase
-        .from('sales')
-        .select('*')
-        .gte('sale_date', fromDate)
+      let q = supabase.from('sales').select('*')
+      if (fromDate) q = q.gte('sale_date', fromDate)
+      const { data, error } = await q
         .order('sale_datetime', { ascending: false })
         .range(from, from + batchSize - 1)
       if (error || !data || data.length === 0) break
@@ -226,7 +225,7 @@ export default function Pardavimai() {
 
       {/* Period filter */}
       <div className="flex gap-2">
-        {[['diena', 'Šiandien'], ['savaite', 'Savaitė'], ['menuo', 'Mėnuo'], ['metai', 'Metai']].map(([val, label]) => (
+        {[['diena', 'Šiandien'], ['savaite', 'Savaitė'], ['menuo', 'Mėnuo'], ['metai', 'Metai'], ['visi', 'Visi']].map(([val, label]) => (
           <button key={val} onClick={() => setPeriod(val)}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${period === val ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             {label}
