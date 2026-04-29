@@ -60,8 +60,18 @@ export default function Pardavimai() {
     const d = new Date()
     d.setDate(d.getDate() - 30)
     const from30 = d.toISOString().split('T')[0]
-    const { data } = await supabase.from('sales').select('sale_date').gte('sale_date', from30)
-    setDatesInDB(new Set((data || []).map(r => r.sale_date).filter(Boolean)))
+    // Fetch all pages to avoid 1000-row Supabase limit
+    const allDates = new Set()
+    let from = 0
+    while (true) {
+      const { data } = await supabase.from('sales').select('sale_date')
+        .gte('sale_date', from30).range(from, from + 999)
+      if (!data || data.length === 0) break
+      data.forEach(r => r.sale_date && allDates.add(r.sale_date))
+      if (data.length < 1000) break
+      from += 1000
+    }
+    setDatesInDB(allDates)
   }
 
   async function load() {
