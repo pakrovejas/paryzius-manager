@@ -22,21 +22,33 @@ export default function Dashboard() {
 
   useEffect(() => { loadAll() }, [])
 
+  async function fetchAllSales(fromDate, fields) {
+    let all = [], from = 0
+    while (true) {
+      const { data } = await supabase.from('sales').select(fields)
+        .gte('sale_date', fromDate).range(from, from + 999)
+      if (!data || data.length === 0) break
+      all = all.concat(data)
+      if (data.length < 1000) break
+      from += 1000
+    }
+    return all
+  }
+
   async function loadAll() {
     const now = new Date()
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
     const yearStart = `${now.getFullYear()}-01-01`
-    const today = now.toISOString().split('T')[0]
 
-    const [salesRes, expRes, fixedRes, invRes, salesYearRes] = await Promise.all([
-      supabase.from('sales').select('amount, dish_name, category').gte('sale_date', monthStart),
+    const [monthlySalesRows, expRes, fixedRes, invRes, yearSalesRows] = await Promise.all([
+      fetchAllSales(monthStart, 'amount, dish_name, category'),
       supabase.from('expenses').select('amount, description, category').gte('date', monthStart),
       supabase.from('fixed_expenses').select('amount, frequency, name, category'),
       supabase.from('inventory').select('quantity, min_quantity, name, unit_cost'),
-      supabase.from('sales').select('sale_date, amount').gte('sale_date', yearStart),
+      fetchAllSales(yearStart, 'sale_date, amount'),
     ])
 
-    const monthlySales = (salesRes.data || []).reduce((s, r) => s + Number(r.amount), 0)
+    const monthlySales = monthlySalesRows.reduce((s, r) => s + Number(r.amount), 0)
     const varExpenses = (expRes.data || []).reduce((s, r) => s + Number(r.amount), 0)
 
     const fixedItems = (fixedRes.data || []).map(r => ({
@@ -59,14 +71,14 @@ export default function Dashboard() {
 
     // Top patiekalas šį mėnesį
     const byDish = {}
-    for (const r of salesRes.data || []) {
+    for (const r of monthlySalesRows) {
       byDish[r.dish_name] = (byDish[r.dish_name] || 0) + Number(r.amount)
     }
     const topDish = Object.entries(byDish).sort((a, b) => b[1] - a[1])[0]
 
     // 6 mėnesių grafikas
     const byMonth = {}
-    for (const r of salesYearRes.data || []) {
+    for (const r of yearSalesRows) {
       const m = r.sale_date?.slice(0, 7)
       if (m) byMonth[m] = (byMonth[m] || 0) + Number(r.amount)
     }
@@ -77,7 +89,6 @@ export default function Dashboard() {
       const label = d.toLocaleDateString('lt-LT', { month: 'short' })
       months.push({ key, label, amount: byMonth[key] || 0 })
     }
-    const maxMonth = Math.max(...months.map(m => m.amount), 1)
 
     setData({ monthlySales, varExpenses, fixedMonthly, fixedItems, totalExpenses, profit, margin, lowStock, missingPrice, topDish, months })
     setLoading(false)
