@@ -49,7 +49,8 @@ function Recepturos() {
     load()
   }
 
-  async function removeIngredient(id) {
+  async function removeIngredient(id, name) {
+    if (!window.confirm(`Ištrinti ingredientą "${name}"?`)) return
     await supabase.from('recipe_items').delete().eq('id', id)
     load()
   }
@@ -167,7 +168,7 @@ function Recepturos() {
                               €{(Number(r.inventory.unit_cost) * Number(r.quantity)).toFixed(2)}
                             </div>
                           )}
-                          <button onClick={() => removeIngredient(r.id)}
+                          <button onClick={() => removeIngredient(r.id, r.inventory?.name)}
                             className="text-gray-300 hover:text-red-400 transition text-sm">🗑️</button>
                         </div>
                       ))}
@@ -278,7 +279,8 @@ function Patiekalai() {
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: !i.is_available } : i))
   }
 
-  async function deleteItem(id) {
+  async function deleteItem(id, name) {
+    if (!window.confirm(`Ištrinti "${name}"? Bus ištrinta ir receptūra.`)) return
     await supabase.from('menu_items').delete().eq('id', id)
     setItems(prev => prev.filter(i => i.id !== id))
   }
@@ -372,7 +374,7 @@ function Patiekalai() {
                 className={`w-10 h-6 rounded-full transition-all flex-shrink-0 ${item.is_available ? 'bg-green-400' : 'bg-gray-300'}`}>
                 <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${item.is_available ? 'translate-x-4' : ''}`} />
               </button>
-              <button onClick={() => deleteItem(item.id)} className="text-gray-300 hover:text-red-400 transition">🗑️</button>
+              <button onClick={() => deleteItem(item.id, item.name)} className="text-gray-300 hover:text-red-400 transition">🗑️</button>
             </div>
           ))}
         </div>
@@ -387,7 +389,7 @@ export default function Meniu() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-gray-800">🍽️ Meniu</h1>
+      <h1 className="text-2xl font-bold text-gray-800">📋 Receptūros</h1>
       <div className="flex gap-2 bg-gray-100 p-1 rounded-2xl">
         <button onClick={() => setTab('patiekalai')}
           className={`flex-1 py-2 rounded-xl font-semibold text-sm transition ${tab === 'patiekalai' ? 'bg-white shadow text-yellow-600' : 'text-gray-500'}`}>

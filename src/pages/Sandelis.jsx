@@ -74,7 +74,8 @@ export default function Sandelis() {
     setEditingCost(null)
   }
 
-  async function deleteItem(id) {
+  async function deleteItem(id, name) {
+    if (!window.confirm(`Ištrinti "${name}"?`)) return
     await supabase.from('inventory').delete().eq('id', id)
     setItems(prev => prev.filter(i => i.id !== id))
   }
@@ -237,7 +238,7 @@ export default function Sandelis() {
                     <button onClick={() => updateQty(item.id, 1)}
                       className="w-9 h-9 bg-green-100 hover:bg-green-200 text-green-600 font-bold rounded-xl text-lg transition">+</button>
                   </div>
-                  <button onClick={() => deleteItem(item.id)}
+                  <button onClick={() => deleteItem(item.id, item.name)}
                     className="text-gray-300 hover:text-red-400 transition text-lg ml-1">🗑️</button>
                 </div>
 

@@ -50,7 +50,8 @@ function FiksuotosIslaidos() {
     setShowForm(true)
   }
 
-  async function deleteItem(id) {
+  async function deleteItem(id, name) {
+    if (!window.confirm(`Ištrinti "${name}"?`)) return
     await supabase.from('fixed_expenses').delete().eq('id', id)
     setItems(prev => prev.filter(i => i.id !== id))
   }
@@ -176,7 +177,7 @@ function FiksuotosIslaidos() {
                       )}
                     </div>
                     <button onClick={() => startEdit(item)} className="text-gray-300 hover:text-purple-400 transition text-lg">✏️</button>
-                    <button onClick={() => deleteItem(item.id)} className="text-gray-300 hover:text-red-400 transition text-lg">🗑️</button>
+                    <button onClick={() => deleteItem(item.id, item.name)} className="text-gray-300 hover:text-red-400 transition text-lg">🗑️</button>
                   </div>
                 ))}
               </div>
@@ -238,7 +239,8 @@ function KintamosIslaidos() {
     load()
   }
 
-  async function deleteItem(id) {
+  async function deleteItem(id, description) {
+    if (!window.confirm(`Ištrinti "${description}"?`)) return
     await supabase.from('expenses').delete().eq('id', id)
     setItems(prev => prev.filter(i => i.id !== id))
   }
@@ -364,7 +366,7 @@ function KintamosIslaidos() {
                 </div>
               </div>
               <div className="text-xl font-black text-red-500 flex-shrink-0">€{Number(item.amount).toFixed(2)}</div>
-              <button onClick={() => deleteItem(item.id)} className="text-gray-300 hover:text-red-400 transition">🗑️</button>
+              <button onClick={() => deleteItem(item.id, item.description)} className="text-gray-300 hover:text-red-400 transition">🗑️</button>
             </div>
           ))}
         </div>

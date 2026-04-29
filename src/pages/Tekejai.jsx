@@ -228,7 +228,7 @@ export default function Tekejai() {
               {s.contact_name && <div className="text-sm text-gray-500">👤 {s.contact_name}</div>}
               {s.phone && <div className="text-sm text-gray-500">📞 {s.phone}</div>}
             </div>
-            <button onClick={async () => { await supabase.from('suppliers').delete().eq('id', s.id); loadAll() }}
+            <button onClick={async () => { if (!window.confirm(`Ištrinti "${s.name}"?`)) return; await supabase.from('suppliers').delete().eq('id', s.id); loadAll() }}
               className="text-gray-300 hover:text-red-400 transition text-lg">🗑️</button>
           </div>
         ))}

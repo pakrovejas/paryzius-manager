@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { path: '/pardavimai', label: 'Pardavimai', emoji: '📊' },
   { path: '/sandelis', label: 'Sandėlis', emoji: '📦' },
   { path: '/islaidos', label: 'Išlaidos', emoji: '💸' },
-  { path: '/meniu', label: 'Meniu', emoji: '🍽️' },
+  { path: '/meniu', label: 'Receptūros', emoji: '📋' },
   { path: '/tekejai', label: 'Tiekėjai', emoji: '🚚' },
 ]
 
